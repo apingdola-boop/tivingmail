@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 사용자 정보 저장/업데이트
-    const { data: existingUser, error: fetchError } = await supabase
+    const { data: existingUser } = await supabase
       .from('users')
       .select('*')
       .eq('email', userInfo.email)
@@ -45,12 +45,12 @@ export async function GET(request: NextRequest) {
       const { error: updateError } = await supabase
         .from('users')
         .update({
-          name: userInfo.name,
-          avatar_url: userInfo.picture,
+          name: userInfo.name || null,
+          avatar_url: userInfo.picture || null,
           google_access_token: tokens.access_token,
           google_refresh_token: tokens.refresh_token || existingUser.google_refresh_token,
           updated_at: new Date().toISOString(),
-        })
+        } as Record<string, unknown>)
         .eq('id', existingUser.id);
 
       if (updateError) throw updateError;
@@ -61,11 +61,11 @@ export async function GET(request: NextRequest) {
         .from('users')
         .insert({
           email: userInfo.email,
-          name: userInfo.name,
-          avatar_url: userInfo.picture,
+          name: userInfo.name || null,
+          avatar_url: userInfo.picture || null,
           google_access_token: tokens.access_token,
-          google_refresh_token: tokens.refresh_token,
-        })
+          google_refresh_token: tokens.refresh_token || null,
+        } as Record<string, unknown>)
         .select()
         .single();
 
@@ -95,4 +95,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=callback_failed', process.env.NEXT_PUBLIC_APP_URL!));
   }
 }
-

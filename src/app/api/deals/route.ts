@@ -74,17 +74,17 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: userId,
         title,
-        description,
+        description: description || null,
         original_email_subject,
         original_email_from,
         original_email_date,
         original_email_body: original_email_body || '',
-        discount_amount,
-        discount_code,
-        expiry_date,
+        discount_amount: discount_amount || null,
+        discount_code: discount_code || null,
+        expiry_date: expiry_date || null,
         category: category || '기타',
         is_public: is_public ?? false,
-      })
+      } as Record<string, unknown>)
       .select()
       .single();
 
@@ -96,4 +96,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '딜 생성에 실패했습니다' }, { status: 500 });
   }
 }
-
