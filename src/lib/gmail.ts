@@ -38,7 +38,7 @@ export const getGmailClient = (accessToken: string, refreshToken?: string) => {
   return google.gmail({ version: 'v1', auth });
 };
 
-// TVING 관련 이메일만 검색
+// TVING 관련 이메일 검색 키워드
 const SEARCH_KEYWORDS = [
   'tving',
   'TVING',
@@ -52,8 +52,9 @@ export const searchTvingEmails = async (
 ) => {
   const gmail = getGmailClient(accessToken, refreshToken);
   
-  // tving 관련 키워드로 검색 쿼리 생성
-  const query = SEARCH_KEYWORDS.map(keyword => `(subject:${keyword} OR from:${keyword})`).join(' OR ');
+  // 제목, 발신자, 본문 어디에든 tving이 포함된 이메일 검색
+  // Gmail 검색에서 키워드만 쓰면 제목+본문+발신자 모두 검색됨
+  const query = SEARCH_KEYWORDS.join(' OR ');
   
   try {
     const response = await gmail.users.messages.list({
@@ -92,12 +93,15 @@ export const searchTvingEmails = async (
         }
       }
 
+      // 본문에서 HTML 태그 제거 (간단한 버전)
+      const cleanBody = body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+
       emails.push({
         id: message.id,
         subject,
         from,
         date,
-        body: body.substring(0, 2000),
+        body: cleanBody.substring(0, 2000),
         snippet: email.data.snippet || '',
       });
     }
