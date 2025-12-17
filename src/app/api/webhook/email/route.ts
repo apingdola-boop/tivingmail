@@ -1,0 +1,89 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
+
+// 비밀 키 (Google Apps Script에서 이 키를 사용)
+const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || 'tving-mail-secret-2024';
+
+// Google Apps Script에서 호출하는 웹훅 API
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    // 비밀 키 확인
+    if (body.secret !== WEBHOOK_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { email } = body;
+
+    if (!email || !email.subject || !email.from) {
+      return NextResponse.json({ error: 'Invalid email data' }, { status: 400 });
+    }
+
+    console.log('📧 웹훅으로 새 이메일 수신:', email.subject);
+
+    // 중복 확인
+    const { data: existing } = await supabase
+      .from('deals')
+      .select('id')
+      .eq('original_email_subject', email.subject)
+      .eq('original_email_from', email.from)
+      .single();
+
+    if (existing) {
+      console.log('⚠️ 이미 존재하는 이메일:', email.subject);
+      return NextResponse.json({ 
+        success: true, 
+        message: '이미 존재하는 이메일입니다',
+        duplicate: true 
+      });
+    }
+
+    // 새 게시물 저장
+    const { data: deal, error } = await supabase
+      .from('deals')
+      .insert({
+        user_id: null, // 웹훅으로 들어온 이메일은 user_id 없음
+        title: email.subject,
+        description: email.snippet || email.body?.substring(0, 200) || '',
+        original_email_subject: email.subject,
+        original_email_from: email.from,
+        original_email_date: email.date || new Date().toISOString(),
+        original_email_body: email.body || '',
+        category: '뉴스/소식',
+        is_public: true,
+        likes_count: 0,
+        views_count: 0,
+      } as Record<string, unknown>)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ 이메일 저장 실패:', error);
+      throw error;
+    }
+
+    console.log('✅ 새 이메일 저장 완료:', email.subject);
+
+    return NextResponse.json({ 
+      success: true, 
+      message: '이메일이 성공적으로 저장되었습니다',
+      deal 
+    });
+  } catch (error) {
+    console.error('❌ 웹훅 처리 실패:', error);
+    return NextResponse.json(
+      { error: '이메일 저장에 실패했습니다' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET 요청으로 상태 확인
+export async function GET() {
+  return NextResponse.json({ 
+    status: 'ok', 
+    message: 'TVING 이메일 웹훅 API가 작동 중입니다' 
+  });
+}
+
