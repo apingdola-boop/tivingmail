@@ -1,136 +1,62 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Filter, TrendingUp, Clock, Heart, Inbox } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, TrendingUp, Clock, Heart, Inbox, RefreshCw } from 'lucide-react';
 import Header from '@/components/Header';
 import PostCard from '@/components/PostCard';
 import { POST_CATEGORIES } from '@/types';
 
-// 임시 더미 데이터
-const DUMMY_POSTS = [
-  {
-    id: '1',
-    user_id: 'user1',
-    title: '📢 [네이버] 12월 서비스 업데이트 안내 - 새로운 기능 추가',
-    description: '네이버 서비스에 새로운 기능들이 추가되었습니다. 검색 결과 개선, UI 변경, 그리고 새로운 AI 기능까지! 자세한 내용을 확인해보세요.',
-    original_email_subject: '[네이버] 12월 서비스 업데이트 안내',
-    original_email_from: 'notice@naver.com',
-    original_email_date: '2024-12-15T09:00:00Z',
-    category: '업데이트',
-    is_public: true,
-    likes_count: 128,
-    views_count: 1520,
-    created_at: '2024-12-15T10:00:00Z',
-    user: {
-      id: 'user1',
-      name: '테크뉴스',
-      avatar_url: null,
-    },
-  },
-  {
-    id: '2',
-    user_id: 'user2',
-    title: '💡 개발자를 위한 2024년 트렌드 기술 정리',
-    description: '2024년 개발자라면 알아야 할 주요 기술 트렌드를 정리했습니다. AI/ML, 클라우드, 새로운 프레임워크 등을 다룹니다.',
-    original_email_subject: '2024 Developer Trends Newsletter',
-    original_email_from: 'newsletter@techblog.com',
-    original_email_date: '2024-12-14T14:00:00Z',
-    category: '팁/정보',
-    is_public: true,
-    likes_count: 256,
-    views_count: 3200,
-    created_at: '2024-12-14T15:00:00Z',
-    user: {
-      id: 'user2',
-      name: '개발자Kim',
-      avatar_url: null,
-    },
-  },
-  {
-    id: '3',
-    user_id: 'user3',
-    title: '🎉 [카카오] 연말 이벤트 안내 - 선물 받아가세요!',
-    description: '카카오에서 연말을 맞아 특별한 이벤트를 진행합니다. 참여만 해도 다양한 경품을 받을 수 있는 기회!',
-    original_email_subject: '[카카오] 연말 감사 이벤트',
-    original_email_from: 'event@kakao.com',
-    original_email_date: '2024-12-13T11:00:00Z',
-    category: '이벤트',
-    is_public: true,
-    likes_count: 89,
-    views_count: 920,
-    created_at: '2024-12-13T12:00:00Z',
-    user: {
-      id: 'user3',
-      name: '이벤트헌터',
-      avatar_url: null,
-    },
-  },
-  {
-    id: '4',
-    user_id: 'user4',
-    title: '📰 [조선일보] 오늘의 주요 뉴스 헤드라인',
-    description: '오늘 가장 중요한 뉴스들을 한눈에 확인하세요. 정치, 경제, 사회, 문화 등 다양한 분야의 소식을 전합니다.',
-    original_email_subject: '오늘의 뉴스 브리핑',
-    original_email_from: 'news@chosun.com',
-    original_email_date: '2024-12-16T08:00:00Z',
-    category: '뉴스/소식',
-    is_public: true,
-    likes_count: 67,
-    views_count: 890,
-    created_at: '2024-12-16T09:00:00Z',
-    user: {
-      id: 'user4',
-      name: '뉴스봇',
-      avatar_url: null,
-    },
-  },
-  {
-    id: '5',
-    user_id: 'user5',
-    title: '⭐ [인프런] React 강의 솔직 후기 - 추천할까요?',
-    description: '인프런에서 인기 있는 React 강의를 들어봤습니다. 장단점을 솔직하게 리뷰합니다. 수강 전에 참고하세요!',
-    original_email_subject: '강의 수강 완료 안내',
-    original_email_from: 'info@inflearn.com',
-    original_email_date: '2024-12-12T16:00:00Z',
-    category: '리뷰/후기',
-    is_public: true,
-    likes_count: 134,
-    views_count: 1100,
-    created_at: '2024-12-12T17:00:00Z',
-    user: {
-      id: 'user5',
-      name: '학습자A',
-      avatar_url: null,
-    },
-  },
-  {
-    id: '6',
-    user_id: 'user6',
-    title: '❓ TypeScript에서 제네릭 사용법 질문',
-    description: 'TypeScript 제네릭을 사용할 때 자주 발생하는 에러와 해결 방법에 대해 질문드립니다. 답변 부탁드려요!',
-    original_email_subject: 'Re: TypeScript 질문',
-    original_email_from: 'dev@company.com',
-    original_email_date: '2024-12-11T10:00:00Z',
-    category: '질문/답변',
-    is_public: true,
-    likes_count: 23,
-    views_count: 450,
-    created_at: '2024-12-11T11:00:00Z',
-    user: {
-      id: 'user6',
-      name: '주니어개발자',
-      avatar_url: null,
-    },
-  },
-];
+interface Post {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string | null;
+  original_email_subject: string;
+  original_email_from: string;
+  original_email_date: string;
+  original_email_body: string | null;
+  category: string;
+  is_public: boolean;
+  likes_count: number;
+  views_count: number;
+  created_at: string;
+  user?: {
+    id: string;
+    name: string | null;
+    avatar_url: string | null;
+  };
+}
 
 type SortType = 'latest' | 'popular' | 'likes';
 
 export default function FeedPage() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortType>('latest');
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+
+  // Supabase에서 실제 데이터 가져오기
+  useEffect(() => {
+    const fetchPosts = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/deals?public=true');
+        const data = await response.json();
+        
+        if (data.deals) {
+          setPosts(data.deals);
+        }
+      } catch (error) {
+        console.error('피드 로드 실패:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
 
   const handleLike = (postId: string) => {
     setLikedPosts(prev => {
@@ -145,7 +71,7 @@ export default function FeedPage() {
   };
 
   // 필터링 및 정렬
-  const filteredPosts = DUMMY_POSTS
+  const filteredPosts = posts
     .filter(post => {
       const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         post.description?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -258,8 +184,14 @@ export default function FeedPage() {
             ))}
           </div>
 
-          {/* 게시물 카드 그리드 */}
-          {filteredPosts.length > 0 ? (
+          {/* 로딩 상태 */}
+          {isLoading ? (
+            <div className="text-center py-20">
+              <RefreshCw className="w-12 h-12 mx-auto text-[var(--color-primary)] mb-4 animate-spin" />
+              <p className="text-gray-400">피드를 불러오는 중...</p>
+            </div>
+          ) : filteredPosts.length > 0 ? (
+            /* 게시물 카드 그리드 */
             <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredPosts.map((post, index) => (
                 <div key={post.id} style={{ animationDelay: `${index * 0.1}s` }}>
@@ -275,11 +207,19 @@ export default function FeedPage() {
             <div className="text-center py-20">
               <Inbox className="w-16 h-16 mx-auto text-gray-600 mb-4" />
               <h3 className="text-xl font-bold text-white mb-2">
-                검색 결과가 없습니다
+                {searchQuery || selectedCategory ? '검색 결과가 없습니다' : '아직 공유된 정보가 없습니다'}
               </h3>
-              <p className="text-gray-400">
-                다른 검색어나 카테고리를 선택해보세요
+              <p className="text-gray-400 mb-6">
+                {searchQuery || selectedCategory 
+                  ? '다른 검색어나 카테고리를 선택해보세요'
+                  : '로그인하면 TVING 관련 이메일이 자동으로 동기화됩니다!'
+                }
               </p>
+              {!searchQuery && !selectedCategory && (
+                <a href="/login" className="btn-primary inline-flex items-center gap-2">
+                  로그인하고 이메일 동기화하기
+                </a>
+              )}
             </div>
           )}
         </div>
@@ -287,4 +227,3 @@ export default function FeedPage() {
     </div>
   );
 }
-
